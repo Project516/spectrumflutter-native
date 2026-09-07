@@ -1,0 +1,30 @@
+name: apple_web_auth
+description: "ASWebAuthenticationSession as a Flutter OAuth redirect listener."
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.13.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      # One Swift source tree under darwin/ serves both.
+      # ASWebAuthenticationSession is the same API on either OS; only
+      # finding a window to present from differs.
+      ios:
+        pluginClass: AppleWebAuthPlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: AppleWebAuthPlugin
+        sharedDarwinSource: true

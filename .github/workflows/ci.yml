@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [liquid_glass, apple_ai]
+        package: [liquid_glass, apple_ai, apple_web_auth]
     defaults:
       run:
         working-directory: packages/${{ matrix.package }}
@@ -75,6 +75,9 @@ jobs:
             # rather than required, which is what keeps the app launching on
             # an iOS older than 26.
             weak_framework: FoundationModels
+          - package: apple_web_auth
+            plugin_class: AppleWebAuthPlugin
+            needle: org.spectrum3847.apple_web_auth
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -153,9 +156,16 @@ jobs:
           fi
 
   macos:
-    name: build macos (apple_ai)
+    name: build macos (${{ matrix.package }})
     runs-on: macos-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The plugins that ship macOS. Each shares one Swift source tree
+        # between the two platforms, so this is the job that proves the
+        # AppKit half of the `#if os(iOS)` branches compiles.
+        package: [apple_ai, apple_web_auth]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -164,11 +174,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      # apple_ai is the only plugin here that ships macOS, and it shares one
-      # Swift source tree between the two platforms, so this is the job that
-      # proves the AppKit half of the `#if os(iOS)` branches compiles.
       - name: Build the example
-        working-directory: packages/apple_ai/example
+        working-directory: packages/${{ matrix.package }}/example
         run: |
           flutter pub get
           flutter build macos --release

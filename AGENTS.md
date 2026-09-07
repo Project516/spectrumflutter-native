@@ -39,6 +39,9 @@ consumes it, on that app's nightly AltStore build.
 - Liquid Glass: Apple's iOS 26 material, `UIGlassEffect`. Flutter has no
   support for it ([flutter/flutter#170310](https://github.com/flutter/flutter/issues/170310)),
   which is why `packages/liquid_glass` exists.
+- Web auth session: `ASWebAuthenticationSession`, the system browser sheet
+  an OAuth flow redirects back from. `packages/apple_web_auth` wraps it,
+  because a loopback redirect is a desktop pattern an iPhone cannot use.
 - Foundation model: Apple's on-device LLM, reached through the
   `FoundationModels` framework on iOS 26 / macOS 26. `packages/apple_ai`
   wraps it. It is not CoreML: CoreML runs a model you bring, this one ships

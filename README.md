@@ -70,6 +70,23 @@ Windows, Linux, the web and older Apple releases, availability answers
 `unsupportedOs` without touching the channel. See the package README for the
 rest.
 
+## packages/apple_web_auth
+
+`ASWebAuthenticationSession` as an OAuth redirect listener, so a sign-in can
+redirect to a registered URL scheme instead of a loopback web server.
+
+```dart
+final callback = await appleWebAuthenticate(
+  url: authorizeUrl,
+  callbackScheme: 'spectrumstrategy',
+);
+```
+
+A desktop app can bind `127.0.0.1` and have the browser redirect to it
+(RFC 8252); an iPhone cannot rely on that. The scheme has to be in the app's
+`Info.plist` and match the `redirect_uri` sent to the provider, or the
+callback never arrives with no error to read. See the package README.
+
 ## Releasing
 
 Tags are repo-wide, not per package: cut one tag, and each app repo pins
