@@ -1,6 +1,6 @@
 name: apple_ai
 description: "Apple's on-device foundation model (Apple Intelligence) as a Flutter text generator."
-version: 0.0.1
+version: 0.1.0
 publish_to: 'none'
 
 environment:

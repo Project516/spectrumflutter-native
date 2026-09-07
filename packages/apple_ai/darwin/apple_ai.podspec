@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'apple_ai'
-  s.version          = '0.0.1'
+  s.version          = '0.1.0'
   s.summary          = "Apple's on-device foundation model as a Flutter text generator."
   s.description      = <<-DESC
 Apple's on-device foundation model (Apple Intelligence) as a Flutter text
