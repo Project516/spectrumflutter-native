@@ -1,0 +1,87 @@
+name: CI
+
+# This repo exists to answer one question fast and for free: does the native
+# iOS code compile? It is public so GitHub does not bill macOS minutes, which
+# in the private app repos cost 10x against a capped budget. Nothing here is
+# shipped and nothing here holds a secret.
+#
+# Visual confirmation does not happen here. The plugin is consumed by
+# SpectrumStrategy and looked at on its nightly AltStore build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.47.2
+
+jobs:
+  dart:
+    name: format, analyze, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/liquid_glass
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - run: dart format --output=none --set-exit-if-changed .
+
+      - run: flutter analyze --fatal-infos
+
+      - run: flutter test
+
+  ios:
+    name: build ios
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # Compiles the Swift through CocoaPods exactly the way the app repos
+      # will. --no-codesign because there is no signing identity and no need
+      # for one: a Swift error fails the build before signing is reached.
+      - name: Build the example unsigned
+        working-directory: packages/liquid_glass/example
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      # A build can succeed while the plugin is silently absent, so prove the
+      # Swift actually landed in the binary.
+      - name: Verify the plugin was linked in
+        working-directory: packages/liquid_glass/example
+        run: |
+          app="$(find build/ios -type d -name Runner.app | head -1)"
+          if [ -z "$app" ]; then
+            echo "Runner.app not found" >&2
+            exit 1
+          fi
+          if [ ! -d "$app/Frameworks/liquid_glass.framework" ]; then
+            echo "liquid_glass.framework missing from the built app" >&2
+            ls -1 "$app/Frameworks" >&2 || true
+            exit 1
+          fi
+          echo "liquid_glass.framework present"
