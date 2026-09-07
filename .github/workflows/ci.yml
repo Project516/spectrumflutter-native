@@ -79,7 +79,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          registrant="$(find ios -name 'GeneratedPluginRegistrant.*' | head -1)"
+          registrant="$( find ios -name 'GeneratedPluginRegistrant.m' | head -1)"
           if [ -z "$registrant" ]; then
             echo "GeneratedPluginRegistrant not found; pub did not wire the plugin" >&2
             exit 1
