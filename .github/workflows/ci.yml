@@ -70,18 +70,34 @@ jobs:
           flutter build ios --release --no-codesign
 
       # A build can succeed while the plugin is silently absent, so prove the
-      # Swift actually landed in the binary.
+      # Swift actually landed. Flutter links plugins as static libraries, so
+      # there is no liquid_glass.framework to look for: the evidence is the
+      # generated registrant naming the class, and the view-type literal
+      # surviving into the stripped release binary.
       - name: Verify the plugin was linked in
         working-directory: packages/liquid_glass/example
         run: |
+          set -euo pipefail
+
+          registrant="$(find ios -name 'GeneratedPluginRegistrant.*' | head -1)"
+          if [ -z "$registrant" ]; then
+            echo "GeneratedPluginRegistrant not found; pub did not wire the plugin" >&2
+            exit 1
+          fi
+          if ! grep -q LiquidGlassPlugin "$registrant"; then
+            echo "LiquidGlassPlugin absent from $registrant" >&2
+            cat "$registrant" >&2
+            exit 1
+          fi
+          echo "registrant registers LiquidGlassPlugin"
+
           app="$(find build/ios -type d -name Runner.app | head -1)"
           if [ -z "$app" ]; then
             echo "Runner.app not found" >&2
             exit 1
           fi
-          if [ ! -d "$app/Frameworks/liquid_glass.framework" ]; then
-            echo "liquid_glass.framework missing from the built app" >&2
-            ls -1 "$app/Frameworks" >&2 || true
+          if ! strings -a "$app/Runner" | grep -q 'org.spectrum3847.liquid_glass/view'; then
+            echo "the platform view type is not in the built binary" >&2
             exit 1
           fi
-          echo "liquid_glass.framework present"
+          echo "platform view type present in the binary"
