@@ -1,11 +1,11 @@
 name: CI
 
 # This repo exists to answer one question fast and for free: does the native
-# iOS code compile? It is public so GitHub does not bill macOS minutes, which
+# Apple code compile? It is public so GitHub does not bill macOS minutes, which
 # in the private app repos cost 10x against a capped budget. Nothing here is
 # shipped and nothing here holds a secret.
 #
-# Visual confirmation does not happen here. The plugin is consumed by
+# Visual confirmation does not happen here. A plugin is consumed by
 # SpectrumStrategy and looked at on its nightly AltStore build.
 
 on:
@@ -26,12 +26,16 @@ env:
 
 jobs:
   dart:
-    name: format, analyze, test
+    name: format, analyze, test (${{ matrix.package }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [liquid_glass, apple_ai]
     defaults:
       run:
-        working-directory: packages/liquid_glass
+        working-directory: packages/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -49,9 +53,22 @@ jobs:
       - run: flutter test
 
   ios:
-    name: build ios
+    name: build ios (${{ matrix.package }})
     runs-on: macos-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `needle` is a string the plugin's Swift puts in the binary, so the
+          # verify step can prove the code landed and not just that a build
+          # went green.
+          - package: liquid_glass
+            plugin_class: LiquidGlassPlugin
+            needle: org.spectrum3847.liquid_glass/view
+          - package: apple_ai
+            plugin_class: AppleAiPlugin
+            needle: org.spectrum3847.apple_ai
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -64,18 +81,21 @@ jobs:
       # will. --no-codesign because there is no signing identity and no need
       # for one: a Swift error fails the build before signing is reached.
       - name: Build the example unsigned
-        working-directory: packages/liquid_glass/example
+        working-directory: packages/${{ matrix.package }}/example
         run: |
           flutter pub get
           flutter build ios --release --no-codesign
 
       # A build can succeed while the plugin is silently absent, so prove the
       # Swift actually landed. Flutter links plugins as static libraries, so
-      # there is no liquid_glass.framework to look for: the evidence is the
-      # generated registrant naming the class, and the view-type literal
+      # there is no framework to look for: the evidence is the generated
+      # registrant naming the class, and a string literal from the plugin
       # surviving into the stripped release binary.
       - name: Verify the plugin was linked in
-        working-directory: packages/liquid_glass/example
+        working-directory: packages/${{ matrix.package }}/example
+        env:
+          PLUGIN_CLASS: ${{ matrix.plugin_class }}
+          NEEDLE: ${{ matrix.needle }}
         run: |
           set -euo pipefail
 
@@ -84,20 +104,41 @@ jobs:
             echo "GeneratedPluginRegistrant not found; pub did not wire the plugin" >&2
             exit 1
           fi
-          if ! grep -q LiquidGlassPlugin "$registrant"; then
-            echo "LiquidGlassPlugin absent from $registrant" >&2
+          if ! grep -q "$PLUGIN_CLASS" "$registrant"; then
+            echo "$PLUGIN_CLASS absent from $registrant" >&2
             cat "$registrant" >&2
             exit 1
           fi
-          echo "registrant registers LiquidGlassPlugin"
+          echo "registrant registers $PLUGIN_CLASS"
 
           app="$(find build/ios -type d -name Runner.app | head -1)"
           if [ -z "$app" ]; then
             echo "Runner.app not found" >&2
             exit 1
           fi
-          if ! strings -a "$app/Runner" | grep -q 'org.spectrum3847.liquid_glass/view'; then
-            echo "the platform view type is not in the built binary" >&2
+          if ! strings -a "$app/Runner" | grep -q "$NEEDLE"; then
+            echo "'$NEEDLE' is not in the built binary" >&2
             exit 1
           fi
-          echo "platform view type present in the binary"
+          echo "'$NEEDLE' present in the binary"
+
+  macos:
+    name: build macos (apple_ai)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # apple_ai is the only plugin here that ships macOS, and it shares one
+      # Swift source tree between the two platforms, so this is the job that
+      # proves the AppKit half of the `#if os(iOS)` branches compiles.
+      - name: Build the example
+        working-directory: packages/apple_ai/example
+        run: |
+          flutter pub get
+          flutter build macos --release

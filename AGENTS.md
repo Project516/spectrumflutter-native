@@ -24,17 +24,22 @@ consumes it, on that app's nightly AltStore build.
   tag-pinned client packages, still goes through a PR.
 - **A tag means a release.** The app repos pin plugins by git tag, so a bump
   needs the version, the changelog, the tag and a `gh release create`, all of
-  it or none.
-- Run the Dart gates locally before pushing. The iOS build is the only part
-  that needs CI. Commands are in `README.md`.
+  it or none. Tags are repo-wide rather than per package: one tag, and each
+  app repo pins whichever package it consumes at it.
+- Run the Dart gates locally before pushing. The Apple builds are the only
+  part that needs CI. Commands are in `README.md`.
 
 ## Glossary
 
 - Plugin: one directory under `packages/`, a Flutter plugin package with its
   own `pubspec.yaml`, podspec and example app.
-- Compile gate: the `build ios` CI job. It builds the example unsigned and
-  then proves the plugin was actually linked in, because a build can go green
-  while a plugin is absent.
+- Compile gate: the `build ios` and `build macos` CI jobs. They build the
+  example and then prove the plugin was actually linked in, because a build
+  can go green while a plugin is absent.
 - Liquid Glass: Apple's iOS 26 material, `UIGlassEffect`. Flutter has no
   support for it ([flutter/flutter#170310](https://github.com/flutter/flutter/issues/170310)),
   which is why `packages/liquid_glass` exists.
+- Foundation model: Apple's on-device LLM, reached through the
+  `FoundationModels` framework on iOS 26 / macOS 26. `packages/apple_ai`
+  wraps it. It is not CoreML: CoreML runs a model you bring, this one ships
+  with the OS.
