@@ -69,6 +69,12 @@ jobs:
           - package: apple_ai
             plugin_class: AppleAiPlugin
             needle: org.spectrum3847.apple_ai
+            # Proves the SDK actually had FoundationModels, which a green
+            # build does not: `#if canImport` compiles the stub instead when
+            # it is missing. `otool -L` also says whether it was linked weakly
+            # rather than required, which is what keeps the app launching on
+            # an iOS older than 26.
+            weak_framework: FoundationModels
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -96,6 +102,7 @@ jobs:
         env:
           PLUGIN_CLASS: ${{ matrix.plugin_class }}
           NEEDLE: ${{ matrix.needle }}
+          WEAK_FRAMEWORK: ${{ matrix.weak_framework }}
         run: |
           set -euo pipefail
 
@@ -121,6 +128,29 @@ jobs:
             exit 1
           fi
           echo "'$NEEDLE' present in the binary"
+
+          if [ -n "${WEAK_FRAMEWORK:-}" ]; then
+            xcodebuild -version
+            cmds="$(otool -l "$app/Runner")"
+            if ! printf '%s\n' "$cmds" | grep -q "$WEAK_FRAMEWORK"; then
+              echo "$WEAK_FRAMEWORK is not linked at all, so the SDK lacked it and" >&2
+              echo "'#if canImport' compiled the stub instead. The plugin would answer" >&2
+              echo "unsupportedOs on every device." >&2
+              exit 1
+            fi
+            # LC_LOAD_WEAK_DYLIB rather than LC_LOAD_DYLIB is what lets an OS
+            # without the framework launch the app at all. otool -L cannot
+            # tell the two apart; the load commands can.
+            if printf '%s\n' "$cmds" | grep -A3 LC_LOAD_WEAK_DYLIB \
+              | grep -q "$WEAK_FRAMEWORK"; then
+              echo "$WEAK_FRAMEWORK is weak linked, so an older OS still launches"
+            else
+              echo "$WEAK_FRAMEWORK is linked as required, not weakly." >&2
+              echo "Every device older than the framework will crash at launch." >&2
+              echo "Fix: s.weak_frameworks in the podspec." >&2
+              exit 1
+            fi
+          fi
 
   macos:
     name: build macos (apple_ai)
