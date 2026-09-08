@@ -47,7 +47,6 @@ void main() {
         SystemChannels.platform_views,
         null,
       );
-      debugDefaultTargetPlatformOverride = null;
     });
 
     // Distinct keys, or the second pump hands Flutter the identical widget
@@ -69,6 +68,10 @@ void main() {
       ),
     );
     expect(find.byType(AppKitView), findsOneWidget);
+
+    // Reset inline: the binding checks foundation debug variables before
+    // tearDowns run, so a reset there is too late.
+    debugDefaultTargetPlatformOverride = null;
   });
 
   test('reports unsupported off Apple platforms', () async {
