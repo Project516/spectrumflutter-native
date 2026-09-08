@@ -36,7 +36,8 @@ consumes it, on that app's nightly AltStore build.
 - Compile gate: the `build ios` and `build macos` CI jobs. They build the
   example and then prove the plugin was actually linked in, because a build
   can go green while a plugin is absent.
-- Liquid Glass: Apple's iOS 26 material, `UIGlassEffect`. Flutter has no
+- Liquid Glass: Apple's 26-release material, `UIGlassEffect` on iOS and
+  `NSGlassEffectView` on macOS. Flutter has no
   support for it ([flutter/flutter#170310](https://github.com/flutter/flutter/issues/170310)),
   which is why `packages/liquid_glass` exists.
 - Web auth session: `ASWebAuthenticationSession`, the system browser sheet

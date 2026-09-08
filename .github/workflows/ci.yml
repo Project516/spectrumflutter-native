@@ -165,7 +165,7 @@ jobs:
         # The plugins that ship macOS. Each shares one Swift source tree
         # between the two platforms, so this is the job that proves the
         # AppKit half of the `#if os(iOS)` branches compiles.
-        package: [apple_ai, apple_web_auth]
+        package: [liquid_glass, apple_ai, apple_web_auth]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 

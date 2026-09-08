@@ -24,7 +24,8 @@ plugin, on its nightly AltStore build.
 
 ## packages/liquid_glass
 
-iOS 26 Liquid Glass as a Flutter platform view.
+Apple Liquid Glass as a Flutter platform view: `UIGlassEffect` on iOS 26 and
+`NSGlassEffectView` on macOS 26.
 
 ```dart
 LiquidGlass(
@@ -33,8 +34,8 @@ LiquidGlass(
 )
 ```
 
-Off iOS the widget is just its child, so callers need no platform branch.
-Below iOS 26 it falls back to a plain system blur. Ask
+Off iOS and macOS the widget is just its child, so callers need no platform
+branch. Below the 26 releases it falls back to a plain system blur. Ask
 `liquidGlassSupported()` when you need to hide the feature entirely rather
 than degrade it.
 
@@ -50,7 +51,8 @@ than degrade it.
   platform view per row of a scrolling list will drop frames.
 - **`interactive: true` makes the native view take touches**, so Flutter
   controls drawn on top of it stop receiving them. It is off by default for
-  that reason.
+  that reason. On macOS the same flag decides whether `hitTest` claims the
+  click.
 
 ## packages/apple_ai
 

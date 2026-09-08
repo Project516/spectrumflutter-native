@@ -40,12 +40,12 @@ class _SpikeScreenState extends State<SpikeScreen> {
 
   Future<void> _probe() async {
     final supported = await liquidGlassSupported();
-    final version = await iosSystemVersion();
+    final version = await systemVersion();
     if (!mounted) return;
     setState(() {
       _status = supported
-          ? 'UIGlassEffect available (iOS ${version ?? "?"})'
-          : 'not available (iOS ${version ?? "n/a"}), showing fallback';
+          ? 'Liquid Glass available (OS ${version ?? "?"})'
+          : 'not available (OS ${version ?? "n/a"}), showing fallback';
     });
   }
 
