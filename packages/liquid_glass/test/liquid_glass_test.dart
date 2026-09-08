@@ -50,12 +50,17 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
+    const glass = Directionality(
+      textDirection: TextDirection.ltr,
+      child: LiquidGlass(),
+    );
+
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    await tester.pumpWidget(const LiquidGlass());
+    await tester.pumpWidget(glass);
     expect(find.byType(UiKitView), findsOneWidget);
 
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
-    await tester.pumpWidget(const LiquidGlass());
+    await tester.pumpWidget(glass);
     expect(find.byType(AppKitView), findsOneWidget);
   });
 
