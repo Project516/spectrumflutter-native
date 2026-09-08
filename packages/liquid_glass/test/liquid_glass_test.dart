@@ -50,17 +50,24 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
-    const glass = Directionality(
-      textDirection: TextDirection.ltr,
-      child: LiquidGlass(),
-    );
-
+    // Distinct keys, or the second pump hands Flutter the identical widget
+    // and nothing rebuilds.
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    await tester.pumpWidget(glass);
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: LiquidGlass(key: ValueKey('ios')),
+      ),
+    );
     expect(find.byType(UiKitView), findsOneWidget);
 
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
-    await tester.pumpWidget(glass);
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: LiquidGlass(key: ValueKey('macos')),
+      ),
+    );
     expect(find.byType(AppKitView), findsOneWidget);
   });
 
