@@ -1,6 +1,6 @@
 name: liquid_glass
-description: "iOS 26 Liquid Glass (UIGlassEffect) as a Flutter platform view."
-version: 0.0.1
+description: "Apple Liquid Glass (iOS 26, macOS 26) as a Flutter platform view."
+version: 0.4.0
 publish_to: 'none'
 
 environment:
@@ -19,5 +19,11 @@ dev_dependencies:
 flutter:
   plugin:
     platforms:
+      # One Swift source tree under darwin/ serves both: the UIKit and AppKit
+      # halves are `#if os(...)` branches of the same file.
       ios:
         pluginClass: LiquidGlassPlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: LiquidGlassPlugin
+        sharedDarwinSource: true

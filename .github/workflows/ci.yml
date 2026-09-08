@@ -1,11 +1,11 @@
 name: CI
 
 # This repo exists to answer one question fast and for free: does the native
-# iOS code compile? It is public so GitHub does not bill macOS minutes, which
+# Apple code compile? It is public so GitHub does not bill macOS minutes, which
 # in the private app repos cost 10x against a capped budget. Nothing here is
 # shipped and nothing here holds a secret.
 #
-# Visual confirmation does not happen here. The plugin is consumed by
+# Visual confirmation does not happen here. A plugin is consumed by
 # SpectrumStrategy and looked at on its nightly AltStore build.
 
 on:
@@ -26,12 +26,16 @@ env:
 
 jobs:
   dart:
-    name: format, analyze, test
+    name: format, analyze, test (${{ matrix.package }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [liquid_glass, apple_ai, apple_web_auth]
     defaults:
       run:
-        working-directory: packages/liquid_glass
+        working-directory: packages/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -49,9 +53,31 @@ jobs:
       - run: flutter test
 
   ios:
-    name: build ios
+    name: build ios (${{ matrix.package }})
     runs-on: macos-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `needle` is a string the plugin's Swift puts in the binary, so the
+          # verify step can prove the code landed and not just that a build
+          # went green.
+          - package: liquid_glass
+            plugin_class: LiquidGlassPlugin
+            needle: org.spectrum3847.liquid_glass/view
+          - package: apple_ai
+            plugin_class: AppleAiPlugin
+            needle: org.spectrum3847.apple_ai
+            # Proves the SDK actually had FoundationModels, which a green
+            # build does not: `#if canImport` compiles the stub instead when
+            # it is missing. `otool -L` also says whether it was linked weakly
+            # rather than required, which is what keeps the app launching on
+            # an iOS older than 26.
+            weak_framework: FoundationModels
+          - package: apple_web_auth
+            plugin_class: AppleWebAuthPlugin
+            needle: org.spectrum3847.apple_web_auth
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -64,24 +90,92 @@ jobs:
       # will. --no-codesign because there is no signing identity and no need
       # for one: a Swift error fails the build before signing is reached.
       - name: Build the example unsigned
-        working-directory: packages/liquid_glass/example
+        working-directory: packages/${{ matrix.package }}/example
         run: |
           flutter pub get
           flutter build ios --release --no-codesign
 
       # A build can succeed while the plugin is silently absent, so prove the
-      # Swift actually landed in the binary.
+      # Swift actually landed. Flutter links plugins as static libraries, so
+      # there is no framework to look for: the evidence is the generated
+      # registrant naming the class, and a string literal from the plugin
+      # surviving into the stripped release binary.
       - name: Verify the plugin was linked in
-        working-directory: packages/liquid_glass/example
+        working-directory: packages/${{ matrix.package }}/example
+        env:
+          PLUGIN_CLASS: ${{ matrix.plugin_class }}
+          NEEDLE: ${{ matrix.needle }}
+          WEAK_FRAMEWORK: ${{ matrix.weak_framework }}
         run: |
+          set -euo pipefail
+
+          registrant="$( find ios -name 'GeneratedPluginRegistrant.m' | head -1)"
+          if [ -z "$registrant" ]; then
+            echo "GeneratedPluginRegistrant not found; pub did not wire the plugin" >&2
+            exit 1
+          fi
+          if ! grep -q "$PLUGIN_CLASS" "$registrant"; then
+            echo "$PLUGIN_CLASS absent from $registrant" >&2
+            cat "$registrant" >&2
+            exit 1
+          fi
+          echo "registrant registers $PLUGIN_CLASS"
+
           app="$(find build/ios -type d -name Runner.app | head -1)"
           if [ -z "$app" ]; then
             echo "Runner.app not found" >&2
             exit 1
           fi
-          if [ ! -d "$app/Frameworks/liquid_glass.framework" ]; then
-            echo "liquid_glass.framework missing from the built app" >&2
-            ls -1 "$app/Frameworks" >&2 || true
+          if ! strings -a "$app/Runner" | grep -q "$NEEDLE"; then
+            echo "'$NEEDLE' is not in the built binary" >&2
             exit 1
           fi
-          echo "liquid_glass.framework present"
+          echo "'$NEEDLE' present in the binary"
+
+          if [ -n "${WEAK_FRAMEWORK:-}" ]; then
+            xcodebuild -version
+            cmds="$(otool -l "$app/Runner")"
+            if ! printf '%s\n' "$cmds" | grep -q "$WEAK_FRAMEWORK"; then
+              echo "$WEAK_FRAMEWORK is not linked at all, so the SDK lacked it and" >&2
+              echo "'#if canImport' compiled the stub instead. The plugin would answer" >&2
+              echo "unsupportedOs on every device." >&2
+              exit 1
+            fi
+            # LC_LOAD_WEAK_DYLIB rather than LC_LOAD_DYLIB is what lets an OS
+            # without the framework launch the app at all. otool -L cannot
+            # tell the two apart; the load commands can.
+            if printf '%s\n' "$cmds" | grep -A3 LC_LOAD_WEAK_DYLIB \
+              | grep -q "$WEAK_FRAMEWORK"; then
+              echo "$WEAK_FRAMEWORK is weak linked, so an older OS still launches"
+            else
+              echo "$WEAK_FRAMEWORK is linked as required, not weakly." >&2
+              echo "Every device older than the framework will crash at launch." >&2
+              echo "Fix: s.weak_frameworks in the podspec." >&2
+              exit 1
+            fi
+          fi
+
+  macos:
+    name: build macos (${{ matrix.package }})
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The plugins that ship macOS. Each shares one Swift source tree
+        # between the two platforms, so this is the job that proves the
+        # AppKit half of the `#if os(iOS)` branches compiles.
+        package: [liquid_glass, apple_ai, apple_web_auth]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Build the example
+        working-directory: packages/${{ matrix.package }}/example
+        run: |
+          flutter pub get
+          flutter build macos --release
