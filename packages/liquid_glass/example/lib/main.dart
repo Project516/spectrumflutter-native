@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:liquid_glass/liquid_glass.dart';
 
+import 'group_demo.dart';
+
 void main() => runApp(const SpikeApp());
 
 class SpikeApp extends StatelessWidget {
@@ -64,6 +66,14 @@ class _SpikeScreenState extends State<SpikeScreen> {
                     _status,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const GroupDemoScreen(),
+                    ),
+                  ),
+                  child: const Text('glass grouping'),
                 ),
                 // The panel case: glass floating over painted content. If the
                 // stripes below are visible through it, refracted, the

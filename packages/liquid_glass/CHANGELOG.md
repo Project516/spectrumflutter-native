@@ -1,3 +1,14 @@
+## 0.5.0
+
+- `LiquidGlassGroup` draws the glass surfaces under it in one container view
+  (`UIGlassContainerEffect` on iOS 26, `NSGlassEffectContainerView` on
+  macOS 26), so they share one sampling pass and blend into each other within
+  `spacing`. Two separate platform views can never do that.
+- A `LiquidGlass` inside a group becomes a shape in that container instead of
+  a platform view of its own. Call sites are unchanged.
+- Members report their geometry while painting, so a shape that moves or
+  resizes follows the widget, animated at an unchanged shape count.
+
 ## 0.4.0
 
 - macOS support: `NSGlassEffectView` on macOS 26, an `NSVisualEffectView`

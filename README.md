@@ -39,6 +39,41 @@ branch. Below the 26 releases it falls back to a plain system blur. Ask
 `liquidGlassSupported()` when you need to hide the feature entirely rather
 than degrade it.
 
+### Grouping
+
+Two glass views each sample the backdrop on their own and stay two hard-edged
+shapes however close they get. Apple's own chrome blends them, and that takes
+a container: `UIGlassContainerEffect` on iOS 26,
+`NSGlassEffectContainerView` on macOS 26. `LiquidGlassGroup` is that
+container, and a `LiquidGlass` inside one becomes a shape in it rather than a
+platform view of its own.
+
+```dart
+Stack(
+  children: <Widget>[
+    body,
+    LiquidGlassGroup(
+      spacing: 40,
+      child: Stack(children: <Widget>[appBar, tabBar]),
+    ),
+  ],
+)
+```
+
+- **Paint order is the thing to get right.** The container is one native
+  layer, painted where the group sits, with its child on top. Glass samples
+  what is painted *below* that layer, so the group goes above the content it
+  should refract and the labels drawn on the glass go inside it. A group
+  wrapped around the whole shell samples nothing.
+- `spacing` is how close two shapes come before they merge, in logical
+  pixels. Shapes far apart stay separate, so a group spanning the window with
+  a bar at each end is correct, not one glass shape the height of the screen.
+- Members report their geometry while painting, so a shape follows the widget
+  as it moves. A member that stays in the tree but stops painting (`Offstage`,
+  `Visibility(visible: false)`) keeps its shape; build it conditionally
+  instead.
+- Below the 26 releases a group is a plain blur per shape and nothing merges.
+
 ### Things worth knowing before using it
 
 - **`UIGlassEffect` ignores `layer.cornerRadius`.** The shape goes through

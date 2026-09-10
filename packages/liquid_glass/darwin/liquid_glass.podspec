@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'liquid_glass'
-  s.version          = '0.4.0'
+  s.version          = '0.5.0'
   s.summary          = 'Apple Liquid Glass as a Flutter platform view.'
   s.description      = <<-DESC
 Liquid Glass (UIGlassEffect on iOS 26, NSGlassEffectView on macOS 26) as a
