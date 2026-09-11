@@ -52,6 +52,7 @@ class LiquidGlass extends StatelessWidget {
     this.cornerRadius = 0,
     this.interactive = false,
     this.tint,
+    this.brightness,
     this.child,
   });
 
@@ -68,6 +69,21 @@ class LiquidGlass extends StatelessWidget {
   /// An optional tint mixed into the glass. Keep it near-transparent; an
   /// opaque tint defeats the material.
   final Color? tint;
+
+  /// Forces the material to resolve as light or dark glass, independent of
+  /// the system appearance. Null (the default) follows the system, which is
+  /// what a caller wants when the app's own theme tracks the system too.
+  ///
+  /// A caller whose theme can diverge from the system appearance (an app with
+  /// its own light/dark setting) should pass its resolved brightness here, or
+  /// the native glass keeps reading the system trait collection /
+  /// `NSAppearance` while the Flutter content on top of it reads the app's
+  /// theme, and the two can disagree.
+  ///
+  /// This is a native platform view, configured once at creation: pass a
+  /// [Key] that varies with brightness so a change replaces the element
+  /// instead of leaving the old glass in place.
+  final Brightness? brightness;
 
   final Widget? child;
 
@@ -93,6 +109,11 @@ class LiquidGlass extends StatelessWidget {
       'cornerRadius': cornerRadius,
       'interactive': interactive,
       'tintArgb': tint?.toARGB32(),
+      'brightness': switch (brightness) {
+        null => null,
+        Brightness.light => 'light',
+        Brightness.dark => 'dark',
+      },
     };
     final Widget glass = defaultTargetPlatform == TargetPlatform.macOS
         ? AppKitView(

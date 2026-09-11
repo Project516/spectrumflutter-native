@@ -76,12 +76,15 @@ struct GlassArgs {
   let radius: Double
   let interactive: Bool
   let tintArgb: Int?
+  /// "light", "dark", or nil to follow the system appearance.
+  let brightness: String?
 
   init(_ args: Any?) {
     let dict = args as? [String: Any] ?? [:]
     radius = dict["cornerRadius"] as? Double ?? 0
     interactive = dict["interactive"] as? Bool ?? false
     tintArgb = dict["tintArgb"] as? Int
+    brightness = dict["brightness"] as? String
   }
 
   var tintComponents: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
@@ -119,6 +122,21 @@ struct GlassShapeSpec {
   }
 }
 
+#if os(macOS)
+
+  /// Left nil this follows the system appearance, same as before. Forcing it
+  /// decouples the material from a system appearance the app's own theme has
+  /// diverged from.
+  func applyBrightness(_ brightness: String?, to view: NSView) {
+    switch brightness {
+    case "light": view.appearance = NSAppearance(named: .aqua)
+    case "dark": view.appearance = NSAppearance(named: .darkAqua)
+    default: view.appearance = nil
+    }
+  }
+
+#endif
+
 #if os(iOS)
 
   class LiquidGlassViewFactory: NSObject, FlutterPlatformViewFactory {
@@ -147,6 +165,15 @@ struct GlassShapeSpec {
       // for the Flutter controls drawn on top of it. Asking for interactive
       // glass opts into the native view taking touches instead.
       effectView.isUserInteractionEnabled = args.interactive
+
+      // Left nil this follows the system trait collection, same as before.
+      // Forcing it decouples the material from a system appearance the app's
+      // own theme has diverged from.
+      switch args.brightness {
+      case "light": effectView.overrideUserInterfaceStyle = .light
+      case "dark": effectView.overrideUserInterfaceStyle = .dark
+      default: break
+      }
 
       if #available(iOS 26.0, *) {
         let glass = UIGlassEffect()
@@ -375,6 +402,7 @@ struct GlassShapeSpec {
       if let t = args.tintComponents {
         tintColor = NSColor(red: t.r, green: t.g, blue: t.b, alpha: t.a)
       }
+      applyBrightness(args.brightness, to: self)
     }
 
     required init?(coder: NSCoder) {
@@ -401,6 +429,7 @@ struct GlassShapeSpec {
       layer?.cornerRadius = args.radius
       layer?.cornerCurve = .continuous
       layer?.masksToBounds = true
+      applyBrightness(args.brightness, to: self)
     }
 
     required init?(coder: NSCoder) {
