@@ -78,4 +78,61 @@ void main() {
     expect(await liquidGlassSupported(), isFalse);
     expect(await systemVersion(), isNull);
   });
+
+  testWidgets(
+    'brightness is absent by default, so the native side follows the system',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: LiquidGlass(),
+        ),
+      );
+
+      final UiKitView view = tester.widget(find.byType(UiKitView));
+      final creationParams = view.creationParams as Map<Object?, Object?>;
+      expect(creationParams['brightness'], isNull);
+
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
+  testWidgets(
+    'brightness carries an explicit light or dark to the platform view',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: LiquidGlass(
+            key: ValueKey('light'),
+            brightness: Brightness.light,
+          ),
+        ),
+      );
+      expect(
+        (tester.widget<UiKitView>(find.byType(UiKitView)).creationParams
+            as Map<Object?, Object?>)['brightness'],
+        'light',
+      );
+
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: LiquidGlass(
+            key: ValueKey('dark'),
+            brightness: Brightness.dark,
+          ),
+        ),
+      );
+      expect(
+        (tester.widget<UiKitView>(find.byType(UiKitView)).creationParams
+            as Map<Object?, Object?>)['brightness'],
+        'dark',
+      );
+
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
 }

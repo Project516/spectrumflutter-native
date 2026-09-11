@@ -1,6 +1,6 @@
 name: liquid_glass
 description: "Apple Liquid Glass (iOS 26, macOS 26) as a Flutter platform view."
-version: 0.5.0
+version: 0.6.0
 publish_to: 'none'
 
 environment:

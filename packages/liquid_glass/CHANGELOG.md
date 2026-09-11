@@ -1,3 +1,12 @@
+## 0.6.0
+
+- `LiquidGlass` takes an optional `brightness` (`Brightness?`, default null).
+  Null follows the system appearance, same as before; `Brightness.light` or
+  `Brightness.dark` forces the material via `overrideUserInterfaceStyle` on
+  iOS and `NSAppearance` on macOS, for a caller whose own theme can diverge
+  from the system appearance. Not yet honored on a `LiquidGlass` inside a
+  `LiquidGlassGroup`.
+
 ## 0.5.0
 
 - `LiquidGlassGroup` draws the glass surfaces under it in one container view
