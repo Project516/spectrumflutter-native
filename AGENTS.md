@@ -19,13 +19,18 @@ consumes it, on that app's nightly AltStore build.
 
 - **Pushing straight to `main` is fine here** (maintainer, 2026-09-07). This
   is the second exception to the global never-push-to-a-default-branch rule,
-  alongside `agent-hq`. There is no review bot on this repo and no shipped
-  artifact to protect. Every other repo, including the app repos and the
-  tag-pinned client packages, still goes through a PR.
-- **A tag means a release.** The app repos pin plugins by git tag, so a bump
-  needs the version, the changelog, the tag and a `gh release create`, all of
-  it or none. Tags are repo-wide rather than per package: one tag, and each
-  app repo pins whichever package it consumes at it.
+  alongside `agent-hq`. There is no shipped artifact to protect, though
+  `project516-review-bot` does review PRs opened here. Every other repo,
+  including the app repos and the tag-pinned client packages, still goes
+  through a PR.
+- **A tag means a release, and tags are per package** (maintainer,
+  2026-09-18). Each app repo pins one package by git tag, so a version bump
+  needs the pubspec version, the changelog, the tag and a `gh release
+  create`, all of it or none. Tag format is `<package>-vX.Y.Z`, e.g.
+  `liquid_glass-v0.6.1`. The early repo-wide tags (`v0.0.1` through
+  `v0.6.0`) predate this and stay as-is; each has a per-package alias tag
+  pointing at the same commit for anything that wants to address them
+  consistently.
 - Run the Dart gates locally before pushing. The Apple builds are the only
   part that needs CI. Commands are in `README.md`.
 
