@@ -17,12 +17,11 @@ consumes it, on that app's nightly AltStore build.
 
 ## Repo-specific rules
 
-- **Pushing straight to `main` is fine here** (maintainer, 2026-09-07). This
-  is the second exception to the global never-push-to-a-default-branch rule,
-  alongside `agent-hq`. There is no shipped artifact to protect, though
-  `project516-review-bot` does review PRs opened here. Every other repo,
-  including the app repos and the tag-pinned client packages, still goes
-  through a PR.
+- **Everything lands through a PR, including docs and version bumps**
+  (maintainer, 2026-09-18). An earlier version of this file claimed a direct-
+  push-to-`main` exception here; that was wrong and has been retracted. The
+  only repo with that exception is `agent-hq`. `project516-review-bot`
+  reviews PRs opened here.
 - **A tag means a release, and tags are per package** (maintainer,
   2026-09-18). Each app repo pins one package by git tag, so a version bump
   needs the pubspec version, the changelog, the tag and a `gh release
