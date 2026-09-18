@@ -1,3 +1,7 @@
+## 0.1.1
+
+- Corrected the package `LICENSE` from MIT to AGPL-3.0, matching the repo.
+
 ## 0.1.0
 
 - Tool calling: `appleAiRespond` takes `tools`, and `appleAiSetToolHandler`

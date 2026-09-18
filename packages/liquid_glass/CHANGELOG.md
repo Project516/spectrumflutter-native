@@ -1,3 +1,7 @@
+## 0.6.1
+
+- Corrected the package `LICENSE` from MIT to AGPL-3.0, matching the repo.
+
 ## 0.6.0
 
 - `LiquidGlass` takes an optional `brightness` (`Brightness?`, default null).
