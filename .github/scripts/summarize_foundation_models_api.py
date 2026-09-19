@@ -22,6 +22,14 @@ NEEDLES = (
 )
 
 
+def last_path_component(symbol: dict) -> str:
+    components = symbol.get("pathComponents")
+    if components:
+        return components[-1] if isinstance(components, list) else str(components).split(".")[-1]
+    title = symbol.get("names", {}).get("title", "<unknown>")
+    return title.split(".")[-1]
+
+
 def full_path(symbol: dict) -> str:
     components = symbol.get("pathComponents")
     if components:
@@ -68,7 +76,8 @@ def collect_matches(symbol_graph_dir: Path, label: str) -> list[str]:
             continue
         for symbol in data.get("symbols", []):
             name = full_path(symbol)
-            if not any(needle in name for needle in NEEDLES):
+            symbol_name = last_path_component(symbol)
+            if not any(needle == symbol_name or needle.lower() == symbol_name.lower() for needle in NEEDLES):
                 continue
             kind = symbol.get("kind", {}).get("displayName", "?")
             availability = format_availability(symbol)
