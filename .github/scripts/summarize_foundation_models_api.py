@@ -53,12 +53,19 @@ def format_availability(symbol: dict) -> str:
 
 def collect_matches(symbol_graph_dir: Path, label: str) -> list[str]:
     lines = []
+    if not symbol_graph_dir.is_dir():
+        lines.append(f"- `{symbol_graph_dir}` was not produced (the extract step failed)")
+        return lines
     json_files = sorted(symbol_graph_dir.glob("*.symbols.json"))
     if not json_files:
         lines.append(f"- no symbol graph files found under `{symbol_graph_dir}`")
         return lines
     for path in json_files:
-        data = json.loads(path.read_text())
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as error:
+            lines.append(f"- `{path}` is not valid JSON: {error}")
+            continue
         for symbol in data.get("symbols", []):
             name = full_path(symbol)
             if not any(needle in name for needle in NEEDLES):

@@ -44,9 +44,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$XCODE_INPUT" ]; then
-            target="/Applications/Xcode_${XCODE_INPUT}.app"
-            if [ ! -d "$target" ]; then
-              echo "Requested Xcode $XCODE_INPUT not found at $target" >&2
+            # Runner images name bundles by full version (Xcode_26.5.1.app),
+            # so match on the prefix and take the newest.
+            target="$(ls -1d /Applications/Xcode_${XCODE_INPUT}*.app 2>/dev/null | sort -V | tail -1 || true)"
+            if [ -z "$target" ] || [ ! -d "$target" ]; then
+              echo "No Xcode matching $XCODE_INPUT under /Applications" >&2
               ls -1d /Applications/Xcode*.app >&2
               exit 1
             fi
@@ -65,6 +67,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
+          # The deployment target follows the SDK the runner ships, so the
+          # dump works before Xcode 27 reaches the image and picks up the
+          # iOS 27 surface on its own once it does.
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           version="$(xcrun --sdk iphoneos --show-sdk-version)"
           echo "Using iphoneos SDK $version: $sdk"
