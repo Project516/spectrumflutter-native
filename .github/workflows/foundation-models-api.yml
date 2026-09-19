@@ -1,0 +1,108 @@
+name: Dump FoundationModels API
+
+# Manual-only tool for an agent without a Mac: dumps the public API surface of
+# Apple's FoundationModels framework from a GitHub-hosted Xcode so it can be
+# read as text. Not a compile gate and not run on a schedule; this repo is
+# public, but a macOS runner still burns free-tier minutes for no reason on
+# every push, so it stays workflow_dispatch only.
+#
+# runs-on: macos-26. If that label ever stops existing, fall back to
+# macos-latest (as of writing macos-26 IS macos-latest, arm64:
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode:
+        description: >-
+          Xcode version to select (e.g. 26.5). Leave empty to use the newest
+          Xcode already installed on the runner.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  dump-api:
+    name: dump FoundationModels API
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - name: List installed Xcode versions
+        run: |
+          set -euo pipefail
+          ls -1d /Applications/Xcode*.app
+          for app in /Applications/Xcode*.app; do
+            echo "--- $app ---"
+            defaults read "$app/Contents/Info" CFBundleShortVersionString || true
+          done
+
+      - name: Select Xcode
+        env:
+          XCODE_INPUT: ${{ inputs.xcode }}
+        run: |
+          set -euo pipefail
+          if [ -n "$XCODE_INPUT" ]; then
+            target="/Applications/Xcode_${XCODE_INPUT}.app"
+            if [ ! -d "$target" ]; then
+              echo "Requested Xcode $XCODE_INPUT not found at $target" >&2
+              ls -1d /Applications/Xcode*.app >&2
+              exit 1
+            fi
+          else
+            # Newest by version-sorting the app bundle names.
+            target="$(ls -1d /Applications/Xcode*.app | sort -V | tail -1)"
+          fi
+          echo "Selecting $target"
+          sudo xcode-select -s "$target/Contents/Developer"
+          xcodebuild -version
+
+      - name: Print swift-symbolgraph-extract help
+        run: xcrun swift-symbolgraph-extract -help
+
+      - name: Extract FoundationModels symbol graph (iOS)
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "Using iphoneos SDK: $sdk"
+          xcrun swift-symbolgraph-extract \
+            -module-name FoundationModels \
+            -target arm64-apple-ios27.0 \
+            -sdk "$sdk" \
+            -output-dir out \
+            -pretty-print \
+            -minimum-access-level public
+
+      - name: Extract FoundationModels symbol graph (macOS)
+        run: |
+          set -euo pipefail
+          mkdir -p out-macos
+          sdk="$(xcrun --sdk macosx --show-sdk-path)"
+          echo "Using macosx SDK: $sdk"
+          xcrun swift-symbolgraph-extract \
+            -module-name FoundationModels \
+            -target arm64-apple-macos26.0 \
+            -sdk "$sdk" \
+            -output-dir out-macos \
+            -pretty-print \
+            -minimum-access-level public
+
+      - name: Summarize symbols of interest
+        run: python3 .github/scripts/summarize_foundation_models_api.py out out-macos summary.md
+
+      - name: Append summary to job summary
+        run: cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: foundation-models-api
+          path: |
+            out
+            out-macos
+            summary.md
+          retention-days: 30
+          if-no-files-found: warn
