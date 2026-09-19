@@ -66,10 +66,11 @@ jobs:
           set -euo pipefail
           mkdir -p out
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
-          echo "Using iphoneos SDK: $sdk"
+          version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "Using iphoneos SDK $version: $sdk"
           xcrun swift-symbolgraph-extract \
             -module-name FoundationModels \
-            -target arm64-apple-ios27.0 \
+            -target "arm64-apple-ios${version}" \
             -sdk "$sdk" \
             -output-dir out \
             -pretty-print \
@@ -80,10 +81,11 @@ jobs:
           set -euo pipefail
           mkdir -p out-macos
           sdk="$(xcrun --sdk macosx --show-sdk-path)"
-          echo "Using macosx SDK: $sdk"
+          version="$(xcrun --sdk macosx --show-sdk-version)"
+          echo "Using macosx SDK $version: $sdk"
           xcrun swift-symbolgraph-extract \
             -module-name FoundationModels \
-            -target arm64-apple-macos26.0 \
+            -target "arm64-apple-macos${version}" \
             -sdk "$sdk" \
             -output-dir out-macos \
             -pretty-print \
