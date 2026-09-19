@@ -6,9 +6,8 @@ name: Dump FoundationModels API
 # public, but a macOS runner still burns free-tier minutes for no reason on
 # every push, so it stays workflow_dispatch only.
 #
-# runs-on: macos-26. If that label ever stops existing, fall back to
-# macos-latest (as of writing macos-26 IS macos-latest, arm64:
-# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md).
+# runs-on: macos-26, the arm64 image that is also macos-latest today:
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
 
 on:
   workflow_dispatch:
