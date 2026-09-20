@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'apple_web_auth'
-  s.version          = '0.0.1'
+  s.version          = '0.0.2'
   s.summary          = 'ASWebAuthenticationSession as a Flutter OAuth redirect listener.'
   s.description      = <<-DESC
 Runs an OAuth authorization request in ASWebAuthenticationSession and returns
