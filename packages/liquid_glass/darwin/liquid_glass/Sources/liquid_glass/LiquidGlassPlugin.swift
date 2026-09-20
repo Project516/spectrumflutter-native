@@ -480,16 +480,31 @@ struct GlassShapeSpec {
       interactive = args.interactive
       super.init(frame: .zero)
       wantsLayer = true
-      layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+      applyBrightness(args.brightness, to: self)
+      updateBackgroundColor()
       layer?.cornerRadius = args.radius
       layer?.cornerCurve = .continuous
       layer?.masksToBounds = true
-      applyBrightness(args.brightness, to: self)
     }
 
     required init?(coder: NSCoder) {
       interactive = false
       super.init(coder: coder)
+    }
+
+    // A CGColor is a snapshot, not a dynamic color: converting
+    // windowBackgroundColor once at init leaves the layer showing whichever
+    // appearance was active then, so this re-resolves whenever the effective
+    // appearance changes underneath it.
+    private func updateBackgroundColor() {
+      effectiveAppearance.performAsCurrentDrawingAppearance {
+        self.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+      }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+      super.viewDidChangeEffectiveAppearance()
+      updateBackgroundColor()
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
