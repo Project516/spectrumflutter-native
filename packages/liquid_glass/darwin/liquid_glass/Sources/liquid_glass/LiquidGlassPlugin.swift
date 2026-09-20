@@ -58,6 +58,20 @@ public class LiquidGlassPlugin: NSObject, FlutterPlugin {
   }
 }
 
+/// Whether the user has Reduce Transparency on, per Apple's HIG: an app must
+/// fall back to a solid surface rather than draw glass or a blur when this is
+/// set. Read at construction, same as the OS availability check, since a
+/// glass view here is already configured once and never rebuilt.
+#if os(iOS)
+  func reduceTransparencyEnabled() -> Bool {
+    return UIAccessibility.isReduceTransparencyEnabled
+  }
+#elseif os(macOS)
+  func reduceTransparencyEnabled() -> Bool {
+    return NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+  }
+#endif
+
 /// Splits a Flutter `Color.toARGB32()` value, which is 0xAARRGGBB.
 func glassTintComponents(_ argb: Int?) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
   guard let argb = argb else { return nil }
@@ -175,7 +189,14 @@ struct GlassShapeSpec {
       default: break
       }
 
-      if #available(iOS 26.0, *) {
+      if reduceTransparencyEnabled() {
+        // Reduce Transparency is on: no blur, no glass, just a solid surface.
+        effectView.effect = nil
+        effectView.backgroundColor = .systemBackground
+        effectView.clipsToBounds = true
+        effectView.layer.cornerRadius = args.radius
+        effectView.layer.cornerCurve = .continuous
+      } else if #available(iOS 26.0, *) {
         let glass = UIGlassEffect()
         glass.isInteractive = args.interactive
         if let t = args.tintComponents {
@@ -300,11 +321,10 @@ struct GlassShapeSpec {
     }
 
     private func applySpacing() {
-      if #available(iOS 26.0, *) {
-        let effect = UIGlassContainerEffect()
-        effect.spacing = spacing
-        host.effect = effect
-      }
+      guard !reduceTransparencyEnabled(), #available(iOS 26.0, *) else { return }
+      let effect = UIGlassContainerEffect()
+      effect.spacing = spacing
+      host.effect = effect
     }
 
     /// Rebuilds the shape views to match `shapes`.
@@ -345,7 +365,13 @@ struct GlassShapeSpec {
     private func configure(_ view: UIVisualEffectView, with shape: GlassShapeSpec) {
       view.frame = shape.frame
       view.isUserInteractionEnabled = shape.interactive
-      if #available(iOS 26.0, *) {
+      if reduceTransparencyEnabled() {
+        view.effect = nil
+        view.backgroundColor = .systemBackground
+        view.clipsToBounds = true
+        view.layer.cornerRadius = shape.radius
+        view.layer.cornerCurve = .continuous
+      } else if #available(iOS 26.0, *) {
         let glass = UIGlassEffect()
         glass.isInteractive = shape.interactive
         if let t = shape.tintComponents {
@@ -377,6 +403,9 @@ struct GlassShapeSpec {
   class LiquidGlassViewFactory: NSObject, FlutterPlatformViewFactory {
     func create(withViewIdentifier viewId: Int64, arguments args: Any?) -> NSView {
       let glassArgs = GlassArgs(args)
+      if reduceTransparencyEnabled() {
+        return SolidView(args: glassArgs)
+      }
       if #available(macOS 26.0, *) {
         return GlassView(args: glassArgs)
       }
@@ -442,6 +471,32 @@ struct GlassShapeSpec {
     }
   }
 
+  /// Reduce Transparency fallback: a solid, opaque surface, no material at
+  /// all.
+  class SolidView: NSView {
+    private let interactive: Bool
+
+    init(args: GlassArgs) {
+      interactive = args.interactive
+      super.init(frame: .zero)
+      wantsLayer = true
+      layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+      layer?.cornerRadius = args.radius
+      layer?.cornerCurve = .continuous
+      layer?.masksToBounds = true
+      applyBrightness(args.brightness, to: self)
+    }
+
+    required init?(coder: NSCoder) {
+      interactive = false
+      super.init(coder: coder)
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+      return interactive ? super.hitTest(point) : nil
+    }
+  }
+
   class LiquidGlassGroupViewFactory: NSObject, FlutterPlatformViewFactory {
     private let messenger: FlutterBinaryMessenger
 
@@ -488,7 +543,7 @@ struct GlassShapeSpec {
       wantsLayer = true
 
       let host: NSView
-      if #available(macOS 26.0, *) {
+      if !reduceTransparencyEnabled(), #available(macOS 26.0, *) {
         let container = NSGlassEffectContainerView()
         container.spacing = spacing
         container.contentView = content
@@ -553,7 +608,10 @@ struct GlassShapeSpec {
       }
       while shapeViews.count < shapes.count {
         let view: NSView
-        if #available(macOS 26.0, *) {
+        if reduceTransparencyEnabled() {
+          view = NSView()
+          view.wantsLayer = true
+        } else if #available(macOS 26.0, *) {
           view = NSGlassEffectView()
         } else {
           let blur = NSVisualEffectView()
@@ -589,11 +647,14 @@ struct GlassShapeSpec {
       let tint = shape.tintComponents.map {
         NSColor(red: $0.r, green: $0.g, blue: $0.b, alpha: $0.a)
       }
-      if #available(macOS 26.0, *), let glass = view as? NSGlassEffectView {
+      if !reduceTransparencyEnabled(), #available(macOS 26.0, *), let glass = view as? NSGlassEffectView {
         glass.cornerRadius = Double(shape.radius)
         glass.tintColor = tint
       } else {
         view.wantsLayer = true
+        if reduceTransparencyEnabled() {
+          view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
         view.layer?.cornerRadius = shape.radius
         view.layer?.cornerCurve = .continuous
         view.layer?.masksToBounds = true
