@@ -126,10 +126,15 @@ callback never arrives with no error to read. See the package README.
 
 ## Releasing
 
-Tags are repo-wide, not per package: cut one tag, and each app repo pins
-whichever package it consumes at that tag. A tag means a release, so a bump
-needs the package version, its changelog, the tag and a `gh release create`,
-all of it or none.
+Tags are per package, not repo-wide: each app repo pins one package by git
+tag, in the form `<package>-vX.Y.Z`, e.g. `liquid_glass-v0.6.1`. A tag means a
+release, so a bump needs the package version, its changelog, the tag and a
+`gh release create`, all of it or none. The early repo-wide tags (`v0.0.1`
+through `v0.6.0`) predate this and stay as-is, each with a per-package alias
+tag pointing at the same commit.
+
+Everything here, including a version bump, lands through a PR.
+`project516-review-bot` reviews PRs opened on this repo.
 
 ## Working on it
 
