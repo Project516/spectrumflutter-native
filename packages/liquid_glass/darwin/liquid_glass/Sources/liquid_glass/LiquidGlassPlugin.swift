@@ -512,6 +512,17 @@ struct GlassShapeSpec {
     }
   }
 
+  /// Reduce Transparency fallback for one shape inside a group. Same
+  /// CGColor-is-a-snapshot problem as `SolidView`, same fix.
+  class SolidShapeView: NSView {
+    override func viewDidChangeEffectiveAppearance() {
+      super.viewDidChangeEffectiveAppearance()
+      effectiveAppearance.performAsCurrentDrawingAppearance {
+        self.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+      }
+    }
+  }
+
   class LiquidGlassGroupViewFactory: NSObject, FlutterPlatformViewFactory {
     private let messenger: FlutterBinaryMessenger
 
@@ -624,7 +635,7 @@ struct GlassShapeSpec {
       while shapeViews.count < shapes.count {
         let view: NSView
         if reduceTransparencyEnabled() {
-          view = NSView()
+          view = SolidShapeView()
           view.wantsLayer = true
         } else if #available(macOS 26.0, *) {
           view = NSGlassEffectView()
@@ -668,7 +679,9 @@ struct GlassShapeSpec {
       } else {
         view.wantsLayer = true
         if reduceTransparencyEnabled() {
-          view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+          view.effectiveAppearance.performAsCurrentDrawingAppearance {
+            view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+          }
         }
         view.layer?.cornerRadius = shape.radius
         view.layer?.cornerCurve = .continuous
