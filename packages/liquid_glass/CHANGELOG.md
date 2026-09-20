@@ -1,3 +1,11 @@
+## 0.7.0
+
+- Honor Reduce Transparency (iOS `UIAccessibility.isReduceTransparencyEnabled`,
+  macOS `NSWorkspace.accessibilityDisplayShouldReduceTransparency`): a glass
+  view or group shape falls back to a solid, opaque surface instead of
+  `UIGlassEffect`/`NSGlassEffectView` or the pre-26 blur when the setting is
+  on. Checked at construction, same as the OS availability check.
+
 ## 0.6.1
 
 - Corrected the package `LICENSE` from MIT to AGPL-3.0, matching the repo.
