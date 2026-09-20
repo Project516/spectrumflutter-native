@@ -11,7 +11,14 @@ name: CI
 on:
   push:
     branches: [main]
+  # `closed` is listed alongside the default types so a merge or close event
+  # queues a cheap run in the same concurrency group below. GitHub does not
+  # cancel a stuck or still-queued run on its own when a PR closes, and
+  # nothing else pushes to that ref afterward to trigger it -- the run would
+  # otherwise sit queued indefinitely. All three jobs skip immediately on
+  # `closed` (see their `if:`).
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 concurrency:
@@ -26,6 +33,7 @@ env:
 
 jobs:
   dart:
+    if: github.event.action != 'closed'
     name: format, analyze, test (${{ matrix.package }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -53,6 +61,7 @@ jobs:
       - run: flutter test
 
   ios:
+    if: github.event.action != 'closed'
     name: build ios (${{ matrix.package }})
     runs-on: macos-latest
     timeout-minutes: 30
@@ -156,6 +165,7 @@ jobs:
           fi
 
   macos:
+    if: github.event.action != 'closed'
     name: build macos (${{ matrix.package }})
     runs-on: macos-latest
     timeout-minutes: 30
