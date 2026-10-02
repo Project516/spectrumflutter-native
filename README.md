@@ -1,4 +1,4 @@
-> **Moved.** These packages now live in [Project516/dart-packages](https://github.com/Project516/dart-packages): `liquid_glass`, `apple_ai` and `apple_web_auth` are under `packages/`, tagged `<name>-vX.Y.Z`. This repo is archived and gets no further updates.
+> **Moved.** These packages now live in [Project516/dart-packages](https://github.com/Project516/dart-packages): `liquid_glass`, `apple_ai` and `apple_web_auth` are under `packages/`, tagged per package, currently `liquid_glass-v0.7.0`, `apple_ai-v0.1.1` and `apple_web_auth-v0.0.2`. This repo is archived and gets no further updates.
 
 # spectrumflutter-native
 
