@@ -1,3 +1,5 @@
+> **Moved.** These packages now live in [Project516/dart-packages](https://github.com/Project516/dart-packages): `liquid_glass`, `apple_ai` and `apple_web_auth` are under `packages/`, tagged `<name>-vX.Y.Z`. This repo is archived and gets no further updates.
+
 # spectrumflutter-native
 
 Native Flutter plugins for the Spectrum apps, and a place to compile them for
